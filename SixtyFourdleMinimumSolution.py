@@ -1,5 +1,5 @@
 import itertools
-from collections import Counter, defaultdict
+from collections import Counter
 
 
 def find_mandatory_words_for_unique_positions(words: list[str]) -> list[str]:
@@ -45,13 +45,38 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
         yield sorted(core_combo)
         return
 
-    candidate_words = [w for w in unique_words if
-                       w not in core_combo and not remaining_universe.isdisjoint(word_coverage_map[w])]
+    # Step 1: Initial filtering of candidate words.
+    # Only consider words not in the core that cover something in the remaining universe.
+    initial_candidates = [w for w in unique_words if
+                          w not in core_combo and not remaining_universe.isdisjoint(word_coverage_map[w])]
+
+    # Step 2: Prune dominated words to reduce the search space.
+    # A word is dominated if its contribution to the remaining universe is a
+    # strict subset of another candidate's contribution. Using such a word is never optimal.
+    candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in initial_candidates}
+
+    dominated_words = set()
+    items = list(candidate_contributions.items())
+    for w1, c1 in items:
+        if w1 in dominated_words:
+            continue
+        for w2, c2 in items:
+            if w1 == w2:
+                continue
+            # If w2's contribution is a proper subset of w1's, w2 is dominated.
+            if c2 < c1:
+                dominated_words.add(w2)
+
+    candidate_words = [w for w in initial_candidates if w not in dominated_words]
+
+    if dominated_words:
+        print(f"Optimization: Pruned {len(dominated_words)} dominated words from the search space.")
 
     min_k_extra = float('inf')
     for k_extra in range(1, len(candidate_words) + 1):
         if k_extra > min_k_extra:
             break
+        print(f"Checking for solutions of size {k_extra + len(core_combo)}")
         for extra_words_tuple in itertools.combinations(candidate_words, k_extra):
             covered_by_extra = set().union(*(word_coverage_map[w] for w in extra_words_tuple))
             if remaining_universe.issubset(covered_by_extra):
@@ -89,74 +114,60 @@ if __name__ == '__main__':
         print("-" * 50)
 
         if len(all_solutions) > 1:
-            # --- Analysis of Swappable Word Pairs ---
-            all_non_common_words = set.union(*(s - common_words for s in all_solutions))
-            candidate_pairs = itertools.combinations(sorted(list(all_non_common_words)), 2)
-
-            swappable_pairs = []
-            non_common_sets = [s - common_words for s in all_solutions]
-
-            for pair in candidate_pairs:
-                w1, w2 = pair
-                is_swappable = True
-                # Check if exactly one of the pair is in each non-common set (XOR)
-                for non_common_set in non_common_sets:
-                    if (w1 in non_common_set) == (w2 in non_common_set):
-                        is_swappable = False
-                        break
-                if is_swappable:
-                    swappable_pairs.append(sorted(pair))
-
-            if swappable_pairs:
-                print("Take one from each of the following groups")
-                for pair in sorted(swappable_pairs):
-                    print(f"  - {pair}")
-
-            print("-" * 50)
-
-            # --- Distinct solution sets minus common and paired words ---
-            all_paired_words = {word for pair in swappable_pairs for word in pair}
+            # --- Analysis of Distinct Non-Common Sets ---
             distinct_residual_sets = set()
             for s in all_solutions:
-                residual_set = frozenset(s - common_words - all_paired_words)
+                # A residual set is what's left of a solution after removing the common core.
+                residual_set = frozenset(s - common_words)
                 distinct_residual_sets.add(residual_set)
 
             if not any(distinct_residual_sets):
-                print("  (All non-common words are part of swappable pairs)")
+                # This case is unlikely if solutions differ, but included for completeness.
+                print("  (No non-common words found across solutions)")
             else:
-                sorted_residuals = sorted([sorted(list(s)) for s in distinct_residual_sets])
-                # Group sets by their common n-1 prefix
-                groups = defaultdict(list)
-                single_sets = []
-                for res_set in sorted_residuals:
-                    n = len(res_set)
-                    if n >= 2:  # A set needs at least 2 elements to have a prefix and a suffix for grouping
-                        prefix = tuple(res_set[:-1])
-                        suffix = res_set[-1]  # The last element
-                        groups[prefix].append(suffix)
-                    else:
-                        # Sets with 0 or 1 elements cannot be grouped by prefix
-                        single_sets.append(res_set)
+                # Iteratively find the largest common subsets among the residual sets.
+                sets_to_process = list(distinct_residual_sets)
+                final_groups = []
 
-                # Identify true groups (more than one member) and move singletons
-                final_groups = {}
-                for prefix, suffixes in groups.items():
-                    if len(suffixes) > 1:
-                        # The suffixes are single words, so we just sort them
-                        final_groups[prefix] = sorted(suffixes)
-                    else:
-                        # This was not a group, so reconstruct the original set and add to singles
-                        single_sets.append(list(prefix) + suffixes)
+                while len(sets_to_process) > 1:
+                    # Find all non-empty subsets of each set and count their occurrences.
+                    subset_counts = Counter()
+                    for s in sets_to_process:
+                        s_list = sorted(list(s))
+                        for k in range(1, len(s_list) + 1):
+                            for subset in itertools.combinations(s_list, k):
+                                subset_counts[subset] += 1
+
+                    # Find subsets that appear in at least two sets.
+                    common_subsets = {subset: count for subset, count in subset_counts.items() if count >= 2}
+
+                    if not common_subsets:
+                        break  # No more groups can be formed.
+
+                    # Find the largest common subset to form the next group.
+                    best_common_subset = max(common_subsets, key=lambda k: (len(k), k))
+                    best_common_frozenset = frozenset(best_common_subset)
+
+                    # Collect all sets that contain this common subset and separate them.
+                    group_members = [s for s in sets_to_process if best_common_frozenset.issubset(s)]
+                    sets_to_process = [s for s in sets_to_process if not best_common_frozenset.issubset(s)]
+
+                    # Store the found group for printing.
+                    other_words = [sorted(list(s - best_common_frozenset)) for s in group_members]
+                    final_groups.append((sorted(list(best_common_frozenset)), sorted(other_words)))
 
                 # Print grouped sets
                 if final_groups:
-                    print("Take the common prefix and one of the following endings:")
-                    for prefix, suffixes in sorted(final_groups.items()):
-                        print(f"  - Common: {list(prefix)}, Endings: {suffixes}")
+                    print("Select all elements in the first set and one in the second set")
+                    for common, others in sorted(final_groups):
+                        print(f"  {common} -- {others}")
                 # Print remaining individual sets
-                if single_sets:
-                    print("Or one of these sets")
-                    for s in sorted(single_sets):
+                if sets_to_process:
+                    if final_groups:
+                        print("Or one of these set(s)")
+                    else:
+                        print("One of these set(s)")
+                    for s in sorted([sorted(list(s)) for s in sets_to_process]):
                         print(f"  - {s}")
             print("-" * 50)
 
