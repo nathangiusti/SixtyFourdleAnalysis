@@ -23,15 +23,15 @@ We apply our common words directly on that solution set and identify any remaini
 
 Next we check for "dominated words", which are words whose contributions to the solution would be a strict subset of the contributions of another word meaning it will never appear in our minimal solution so we exclude it from our search space.
 
-Then we take the set of words that aren't in our common set, and search each subset of size 1 to see if it solves. If not, we get a list of all distinct sets of size 2 and so on. 
+Then we take the set of words that aren't in our common set, and search each subset of size 1 to see if it solves. If not, we get a list of all distinct subsets of size 2 and so on. The larger the size of the subset, the more distinct subsets exist which is what primarily governs the speed of execution. 
 
-Our code generates a list of all possible solution sets and presents them broken down into the following. 
+At the end we print a list of all possible solution sets and presents them broken down into the following: 
 
-The core words found before starting the analysis.
+- The core words found before starting the analysis.
 
-The words beyond the core words which exist in every minimal solution
+- The words beyond the core words which exist in every minimal solution
 
-Groupings of solution sets with multiple common words and separating the suffix's for easier exploration of the solution space. 
+- Groupings of solution sets with multiple common words and separating the suffix's for easier exploration of the solution space. 
 
 # My process
 
