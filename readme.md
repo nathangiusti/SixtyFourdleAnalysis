@@ -4,7 +4,14 @@ SixtyFourdleMinimumSolution.py accepts a list of words which compose the solutio
 
 The goal of the program is to identify the smallest possible number words that need to be solved in order to trigger the auto complete. 
 
-This was coded mostly by Gemini with my guidance. 
+This was coded mostly by Gemini initially but I found their PyCharm plugin trying so I switched at some point to Claude.
+
+# Execution Time
+
+The core words are calculated instantly so the general time to run is most governed by the size of the solutions minus the size of the core word set. In other words, how many additional words are needed beyond the core words for a minimal solution. 
+This dictates how many times we must run the loop. The speed of the loop is moderately affected by the number of dominated words. The more dominated words, the fewer combinations we need to check.
+
+See an example run for an example execution time for a relatively long run. 
 
 # How it works
 
@@ -14,15 +21,17 @@ It then constructs a representation of the problem space, which contains a list 
 
 We apply our common words directly on that solution set and identify any remaining letter/position combinations.
 
+Next we check for "dominated words", which are words whose contributions to the solution would be a strict subset of the contributions of another word meaning it will never appear in our minimal solution so we exclude it from our search space.
+
 Then we take the set of words that aren't in our common set, and search each subset of size 1 to see if it solves. If not, we get a list of all distinct sets of size 2 and so on. 
 
 Our code generates a list of all possible solution sets and presents them broken down into the following. 
 
-First any words that appear in every minimum length solution. 
+The core words found before starting the analysis.
 
-Then any pairs of words of which, each minimum solution contains exactly one. 
+The words beyond the core words which exist in every minimal solution
 
-And then looks for any simple groupings of the remaining solution words. 
+Groupings of solution sets with multiple common words and separating the suffix's for easier exploration of the solution space. 
 
 # My process
 
@@ -42,40 +51,88 @@ After some prodding, Gemini suggested looking for words in the remaining search 
 
 From there after a few iterations, I've settled on grouping solution sets based on common elements as an easier way to read the solution space.
 
+Adding the dominating words was one of the last modifications made to try to incrementally speed up the program. 
+
 # Sample
 
-## Input list from 2025-08-13
+## Answers from 2025-08-20
 
-"IGLOO", "SWATH", "CORAL", "NAKED", "BOTCH", "EDIFY", "CORGI", "TONAL",	"WHICH", "DOGMA", "SLIME", "WREAK", "JELLY", "BULKY", "LOVED", "FILED", "AGAIN", "SHAME", "GLAND", "OUTGO", "SAINT", "SQUID", "GLEAM", "SHRUG",	"EXUDE", "ACORN", "AIMER", "FEWER", "BEGUN", "ADOPT", "RUMBA", "FULLY",	"CINCH", "WAVER", "SINEW", "VERSE", "TUBER", "GAZER", "OBESE", "PAYER",	"EVADE", "SAMBA", "IRONY", "BLITZ", "CHUMP", "SWEPT", "MAYOR", "BLASE", "GIZMO", "SHOOT", "LINER", "PAPAL", "BOWED", "SLACK", "SCALP", "SPERM",	"SHONE", "SMILE", "BINGE", "MERRY", "SLASH", "OVINE", "SOLAR", "ROUND"
+LYRIC ~ BOUND ~ BRASH ~ SURGE ~ AXION ~ DINGO ~ CHOSE ~ SNIDE		AUNTY ~ HALVE ~ WRECK ~ SWEPT ~ DISHY ~ FOCAL ~ RIDER ~ REACH
+EXULT ~ LEARN ~ TRAIN ~ CURRY ~ UPSET ~ DOTED ~ TWIST ~ PLUNK		GLAND ~ BULLY ~ COBRA ~ WAVER ~ NEVER ~ LEMUR ~ FINED ~ FUMED
+~	
+REVUE ~ REBUT ~ ULTRA ~ CHUNK ~ GIZMO ~ SIZED ~ VYING ~ CRAVE		SCRAP ~ STUNG ~ FOLIO ~ NOSEY ~ DRIFT ~ BLOND ~ LINGO ~ GAUDY
+DUTCH ~ PRISM ~ LURED ~ ENTRY ~ FLUNG ~ GLOAT ~ LIKED ~ TOWED		COYLY ~ CRUEL ~ FIELD ~ RANCH ~ HAUNT ~ DUMMY ~ CLUEY ~ BONEY
 
 ## Output
 
 Starting analysis for a list of 64 words.
+
 --------------------------------------------------
-Found 18 unique letter-positions that must be covered by mandatory words.
-Found 17 mandatory words based on unique positions: ['BLITZ', 'BULKY', 'CORGI', 'DOGMA', 'EDIFY', 'EXUDE', 'JELLY', 'NAKED', 'OBESE', 'PAPAL', 'SHRUG', 'SINEW', 'SMILE', 'SPERM', 'SQUID', 'TUBER', 'VERSE']
+
+Found 17 unique letter-positions that must be covered by mandatory words.
+
+Found 16 mandatory words based on unique positions: ['AUNTY', 'AXION', 'COYLY', 'DISHY', 'DRIFT', 'FOCAL', 'LIKED', 'LYRIC', 'PRISM', 'RIDER', 'SCRAP', 'STUNG', 'SWEPT', 'TOWED', 'UPSET', 'VYING']
+
 --------------------------------------------------
+
 Searching for all minimal solutions...
-Optimization: Pruned 16 dominated words from the search space.
-Checking for solutions of size 18
-Checking for solutions of size 19
-Checking for solutions of size 20
-Checking for solutions of size 21
-Checking for solutions of size 22
-Checking for solutions of size 23
-Checking for solutions of size 24
-Checking for solutions of size 25
-Checking for solutions of size 26
-Checking for solutions of size 27
-Checking for solutions of size 28
-Checking for solutions of size 29
-Found 3 minimal solution(s) of size 29.
+
+Optimization: Pruned 12 dominated words from the search space.
+
+Dominated words will not ever appear in a minimum solution set.
+
+Dominated words: ['BONEY', 'BOUND', 'CLUEY', 'CURRY', 'DOTED', 'EXULT', 'FLUNG', 'FUMED', 'HAUNT', 'NOSEY', 'SIZED', 'TRAIN']
+
+Checking for solutions of size 17 (took 0.00s)
+
+Checking for solutions of size 18 (took 0.00s)
+
+Checking for solutions of size 19 (took 0.00s)
+
+Checking for solutions of size 20 (took 0.05s)
+
+Checking for solutions of size 21 (took 0.36s)
+
+Checking for solutions of size 22 (took 1.58s)
+
+Checking for solutions of size 23 (took 6.22s)
+
+Checking for solutions of size 24 (took 20.14s)
+
+Checking for solutions of size 25 (took 55.81s)
+
+Checking for solutions of size 26 (took 130.38s)
+
+Checking for solutions of size 27 (took 285.04s)
+
+Checking for solutions of size 28 (took 504.73s)
+
+Found 72 minimal solution(s) of size 28.
+
 --------------------------------------------------
-An ideal solution contains the following (26 words):
-  ['BLITZ', 'BOTCH', 'BULKY', 'CORGI', 'DOGMA', 'EDIFY', 'EXUDE', 'FEWER', 'GIZMO', 'JELLY', 'LOVED', 'MAYOR', 'NAKED', 'OBESE', 'PAPAL', 'RUMBA', 'SCALP', 'SHRUG', 'SINEW', 'SMILE', 'SPERM', 'SQUID', 'SWEPT', 'TUBER', 'VERSE', 'WREAK']
+
+An ideal solution contains the following (20 words):
+
+  Core words: ['AUNTY', 'AXION', 'COYLY', 'DISHY', 'DRIFT', 'FOCAL', 'LIKED', 'LYRIC', 'PRISM', 'RIDER', 'SCRAP', 'STUNG', 'SWEPT', 'TOWED', 'UPSET', 'VYING']
+
+  Additional common words: ['ENTRY', 'GIZMO', 'HALVE', 'NEVER']
+
 --------------------------------------------------
-Select all elements in the first set and one in the second set
-  ['AGAIN', 'IRONY'] -- [['EVADE'], ['OVINE']]
-Or one of these set(s)
-  - ['ACORN', 'IGLOO', 'OVINE']
+
+Select all elements in the first set and one of the second sets (second sets are usually single words)
+
+  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'GAUDY', 'LEMUR', 'WRECK'] -- [['DINGO'], ['LINGO']]
+
+  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'LEMUR', 'SNIDE', 'WRECK'] -- [['DINGO'], ['LINGO']]
+
+  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'LEMUR', 'SURGE', 'WRECK'] -- [['GAUDY'], ['SNIDE']]
+
+ ... omitted for brevity
+
+  ['BRASH', 'COBRA', 'GAUDY', 'GLOAT', 'LEMUR', 'SURGE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
+
+ ['BRASH', 'COBRA', 'GLOAT', 'LEMUR', 'LINGO', 'SNIDE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
+ 
+ ['BRASH', 'COBRA', 'GLOAT', 'LEMUR', 'SNIDE', 'SURGE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
+
 --------------------------------------------------
