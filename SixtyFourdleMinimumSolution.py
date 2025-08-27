@@ -3,20 +3,20 @@ from collections import Counter
 import re
 import time
 
-
-#
-
-
 ANSWERS = """
- COPY AND PASTE THE ANSWER BLOB FROM THE WEBSITE HERE. THE CODE WILL EXTRACT THE WORDS
+AWOKE ~ KHAKI ~ UPSET ~ SMILE ~ PRISM ~ FLANK ~ FIXED ~ ELIDE		WRUNG ~ MOLLY ~ BELLE ~ RASPY ~ CUTIE ~ CRANK ~ WHELP ~ LINGO
+ABEAM ~ BOGUS ~ SWUNG ~ PLANK ~ QUIRK ~ SHARP ~ WIDEN ~ BLOAT		WAKED ~ MERIT ~ GREET ~ POSER ~ RAINY ~ WENCH ~ DJINN ~ DINGE
+~	
+BOGEY ~ UNFIT ~ IMPEL ~ KNEAD ~ WOODY ~ CHILL ~ CURRY ~ AGORA		CAIRN ~ PAYER ~ RESIN ~ FLUTE ~ SINCE ~ BEGAT ~ GROAN ~ QUEER
+CELLO ~ GAFFE ~ BEACH ~ DUMPY ~ INANE ~ HAVEN ~ CHEST ~ LOTUS		GEESE ~ DRAPE ~ GRAND ~ LOFTY ~ GORED ~ REHAB ~ CLING ~ LAPSE
 """
 # EX:
 # ANSWERS = """
-# LYRIC ~ BOUND ~ BRASH ~ SURGE ~ AXION ~ DINGO ~ CHOSE ~ SNIDE		AUNTY ~ HALVE ~ WRECK ~ SWEPT ~ DISHY ~ FOCAL ~ RIDER ~ REACH
-# EXULT ~ LEARN ~ TRAIN ~ CURRY ~ UPSET ~ DOTED ~ TWIST ~ PLUNK		GLAND ~ BULLY ~ COBRA ~ WAVER ~ NEVER ~ LEMUR ~ FINED ~ FUMED
+# AWOKE ~ KHAKI ~ UPSET ~ SMILE ~ PRISM ~ FLANK ~ FIXED ~ ELIDE		WRUNG ~ MOLLY ~ BELLE ~ RASPY ~ CUTIE ~ CRANK ~ WHELP ~ LINGO
+# ABEAM ~ BOGUS ~ SWUNG ~ PLANK ~ QUIRK ~ SHARP ~ WIDEN ~ BLOAT		WAKED ~ MERIT ~ GREET ~ POSER ~ RAINY ~ WENCH ~ DJINN ~ DINGE
 # ~
-# REVUE ~ REBUT ~ ULTRA ~ CHUNK ~ GIZMO ~ SIZED ~ VYING ~ CRAVE		SCRAP ~ STUNG ~ FOLIO ~ NOSEY ~ DRIFT ~ BLOND ~ LINGO ~ GAUDY
-# DUTCH ~ PRISM ~ LURED ~ ENTRY ~ FLUNG ~ GLOAT ~ LIKED ~ TOWED		COYLY ~ CRUEL ~ FIELD ~ RANCH ~ HAUNT ~ DUMMY ~ CLUEY ~ BONEY
+# BOGEY ~ UNFIT ~ IMPEL ~ KNEAD ~ WOODY ~ CHILL ~ CURRY ~ AGORA		CAIRN ~ PAYER ~ RESIN ~ FLUTE ~ SINCE ~ BEGAT ~ GROAN ~ QUEER
+# CELLO ~ GAFFE ~ BEACH ~ DUMPY ~ INANE ~ HAVEN ~ CHEST ~ LOTUS		GEESE ~ DRAPE ~ GRAND ~ LOFTY ~ GORED ~ REHAB ~ CLING ~ LAPSE
 # """
 
 
@@ -91,6 +91,38 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 		print(f"Optimization: Pruned {len(dominated_words)} dominated words from the search space.")
 		print("Dominated words will not ever appear in a minimum solution set.")
 		print(f"Dominated words: {sorted(list(dominated_words))}")
+
+	# Step 3: Find additional core words after pruning dominated words
+	# Look for words that are now uniquely covering certain positions
+	remaining_candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in candidate_words}
+	
+	# Find positions that are only covered by one word among candidates
+	position_coverage_count = Counter()
+	for word, contribution in remaining_candidate_contributions.items():
+		for pos in contribution:
+			position_coverage_count[pos] += 1
+	
+	unique_coverage_positions = {pos for pos, count in position_coverage_count.items() if count == 1}
+	
+	if unique_coverage_positions:
+		additional_core = set()
+		for word, contribution in remaining_candidate_contributions.items():
+			if contribution & unique_coverage_positions:
+				additional_core.add(word)
+		
+		if additional_core:
+			print(f"Found {len(additional_core)} additional core words after pruning: {sorted(list(additional_core))}")
+			# Update the core and recalculate remaining universe
+			core_combo = sorted(list(set(core_combo) | additional_core))
+			covered_by_core = set().union(*(word_coverage_map[w] for w in core_combo if w in word_coverage_map))
+			remaining_universe = full_universe - covered_by_core
+			
+			# Remove additional core words from candidate list
+			candidate_words = [w for w in candidate_words if w not in additional_core]
+			
+			if not remaining_universe:
+				yield sorted(core_combo)
+				return
 
 	min_k_extra = float('inf')
 	for k_extra in range(1, len(candidate_words) + 1):

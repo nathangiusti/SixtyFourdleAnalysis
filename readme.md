@@ -23,6 +23,8 @@ We apply our common words directly on that solution set and identify any remaini
 
 Next we check for "dominated words", which are words whose contributions to the solution would be a strict subset of the contributions of another word meaning it will never appear in our minimal solution so we exclude it from our search space.
 
+After removing the "dominated words" we check again for additional common words which further reduces our search space. 
+
 Then we take the set of words that aren't in our common set, and search each subset of size 1 to see if it solves. If not, we get a list of all distinct subsets of size 2 and so on. The larger the size of the subset, the more distinct subsets exist which is what primarily governs the speed of execution. 
 
 At the end we print a list of all possible solution sets and presents them broken down into the following: 
@@ -51,17 +53,17 @@ After some prodding, Gemini suggested looking for words in the remaining search 
 
 From there after a few iterations, I've settled on grouping solution sets based on common elements as an easier way to read the solution space.
 
-Adding the dominating words was one of the last modifications made to try to incrementally speed up the program. 
+Later we added dominated words, and then looking at it's attempts to solve certain problems, found that we would benefit from checking again after the dominated words. 
 
 # Sample
 
-## Answers from 2025-08-20
+## Answers from 2025-08-27
 
-LYRIC ~ BOUND ~ BRASH ~ SURGE ~ AXION ~ DINGO ~ CHOSE ~ SNIDE		AUNTY ~ HALVE ~ WRECK ~ SWEPT ~ DISHY ~ FOCAL ~ RIDER ~ REACH
-EXULT ~ LEARN ~ TRAIN ~ CURRY ~ UPSET ~ DOTED ~ TWIST ~ PLUNK		GLAND ~ BULLY ~ COBRA ~ WAVER ~ NEVER ~ LEMUR ~ FINED ~ FUMED
+AWOKE ~ KHAKI ~ UPSET ~ SMILE ~ PRISM ~ FLANK ~ FIXED ~ ELIDE		WRUNG ~ MOLLY ~ BELLE ~ RASPY ~ CUTIE ~ CRANK ~ WHELP ~ LINGO
+ABEAM ~ BOGUS ~ SWUNG ~ PLANK ~ QUIRK ~ SHARP ~ WIDEN ~ BLOAT		WAKED ~ MERIT ~ GREET ~ POSER ~ RAINY ~ WENCH ~ DJINN ~ DINGE
 ~	
-REVUE ~ REBUT ~ ULTRA ~ CHUNK ~ GIZMO ~ SIZED ~ VYING ~ CRAVE		SCRAP ~ STUNG ~ FOLIO ~ NOSEY ~ DRIFT ~ BLOND ~ LINGO ~ GAUDY
-DUTCH ~ PRISM ~ LURED ~ ENTRY ~ FLUNG ~ GLOAT ~ LIKED ~ TOWED		COYLY ~ CRUEL ~ FIELD ~ RANCH ~ HAUNT ~ DUMMY ~ CLUEY ~ BONEY
+BOGEY ~ UNFIT ~ IMPEL ~ KNEAD ~ WOODY ~ CHILL ~ CURRY ~ AGORA		CAIRN ~ PAYER ~ RESIN ~ FLUTE ~ SINCE ~ BEGAT ~ GROAN ~ QUEER
+CELLO ~ GAFFE ~ BEACH ~ DUMPY ~ INANE ~ HAVEN ~ CHEST ~ LOTUS		GEESE ~ DRAPE ~ GRAND ~ LOFTY ~ GORED ~ REHAB ~ CLING ~ LAPSE
 
 ## Output
 
@@ -71,68 +73,60 @@ Starting analysis for a list of 64 words.
 
 Found 17 unique letter-positions that must be covered by mandatory words.
 
-Found 16 mandatory words based on unique positions: ['AUNTY', 'AXION', 'COYLY', 'DISHY', 'DRIFT', 'FOCAL', 'LIKED', 'LYRIC', 'PRISM', 'RIDER', 'SCRAP', 'STUNG', 'SWEPT', 'TOWED', 'UPSET', 'VYING']
+Found 14 mandatory words based on unique positions: ['ABEAM', 'AGORA', 'DJINN', 'DUMPY', 'ELIDE', 'FIXED', 'GAFFE', 'HAVEN', 'KHAKI', 'PAYER', 'REHAB', 'UPSET', 'WAKED', 'WIDEN']
 
 --------------------------------------------------
 
 Searching for all minimal solutions...
 
-Optimization: Pruned 12 dominated words from the search space.
+Optimization: Pruned 18 dominated words from the search space.
 
 Dominated words will not ever appear in a minimum solution set.
 
-Dominated words: ['BONEY', 'BOUND', 'CLUEY', 'CURRY', 'DOTED', 'EXULT', 'FLUNG', 'FUMED', 'HAUNT', 'NOSEY', 'SIZED', 'TRAIN']
+Dominated words: ['AWOKE', 'BEGAT', 'BLOAT', 'BOGEY', 'CAIRN', 'DINGE', 'DRAPE', 'FLANK', 'GEESE', 'GRAND', 'GREET', 'GROAN', 'KNEAD', 'PLANK', 'POSER', 'QUEER', 'RESIN', 'WOODY']
 
-Checking for solutions of size 17 (took 0.00s)
-
-Checking for solutions of size 18 (took 0.00s)
+Found 4 additional core words after pruning: ['BOGUS', 'LINGO', 'QUIRK', 'SWUNG']
 
 Checking for solutions of size 19 (took 0.00s)
 
-Checking for solutions of size 20 (took 0.05s)
+Checking for solutions of size 20 (took 0.00s)
 
-Checking for solutions of size 21 (took 0.36s)
+Checking for solutions of size 21 (took 0.00s)
 
-Checking for solutions of size 22 (took 1.58s)
+Checking for solutions of size 22 (took 0.02s)
 
-Checking for solutions of size 23 (took 6.22s)
+Checking for solutions of size 23 (took 0.14s)
 
-Checking for solutions of size 24 (took 20.14s)
+Checking for solutions of size 24 (took 0.51s)
 
-Checking for solutions of size 25 (took 55.81s)
+Checking for solutions of size 25 (took 1.63s)
 
-Checking for solutions of size 26 (took 130.38s)
+Checking for solutions of size 26 (took 4.05s)
 
-Checking for solutions of size 27 (took 285.04s)
+Checking for solutions of size 27 (took 8.77s)
 
-Checking for solutions of size 28 (took 504.73s)
-
-Found 72 minimal solution(s) of size 28.
+Found 104 minimal solution(s) of size 27.
 
 --------------------------------------------------
 
 An ideal solution contains the following (20 words):
 
-  Core words: ['AUNTY', 'AXION', 'COYLY', 'DISHY', 'DRIFT', 'FOCAL', 'LIKED', 'LYRIC', 'PRISM', 'RIDER', 'SCRAP', 'STUNG', 'SWEPT', 'TOWED', 'UPSET', 'VYING']
+  Core words: ['ABEAM', 'AGORA', 'DJINN', 'DUMPY', 'ELIDE', 'FIXED', 'GAFFE', 'HAVEN', 'KHAKI', 'PAYER', 'REHAB', 'UPSET', 'WAKED', 'WIDEN']
 
-  Additional common words: ['ENTRY', 'GIZMO', 'HALVE', 'NEVER']
+  Additional common words: ['BOGUS', 'IMPEL', 'LINGO', 'PRISM', 'QUIRK', 'SWUNG']
 
 --------------------------------------------------
 
 Select all elements in the first set and one of the second sets (second sets are usually single words)
 
-  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'GAUDY', 'LEMUR', 'WRECK'] -- [['DINGO'], ['LINGO']]
+  ['BEACH', 'CELLO', 'INANE', 'LOTUS', 'MERIT', 'SHARP'] -- [['FLUTE'], ['LOFTY']]
 
-  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'LEMUR', 'SNIDE', 'WRECK'] -- [['DINGO'], ['LINGO']]
+  ['BEACH', 'CELLO', 'INANE', 'LOTUS', 'MERIT', 'WHELP'] -- [['FLUTE'], ['LOFTY']]
 
-  ['BLOND', 'BRASH', 'CHUNK', 'COBRA', 'LEMUR', 'SURGE', 'WRECK'] -- [['GAUDY'], ['SNIDE']]
+  ... Omitted for brevity
 
- ... omitted for brevity
+  ['CUTIE', 'LOFTY', 'MOLLY', 'UNFIT', 'WENCH', 'WHELP'] -- [['CURRY'], ['GORED']]
 
-  ['BRASH', 'COBRA', 'GAUDY', 'GLOAT', 'LEMUR', 'SURGE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
+  ['CUTIE', 'MERIT', 'MOLLY', 'SHARP', 'UNFIT', 'WENCH'] -- [['FLUTE'], ['LOFTY']]
 
- ['BRASH', 'COBRA', 'GLOAT', 'LEMUR', 'LINGO', 'SNIDE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
- 
- ['BRASH', 'COBRA', 'GLOAT', 'LEMUR', 'SNIDE', 'SURGE', 'WRECK'] -- [['CHOSE'], ['CHUNK']]
-
---------------------------------------------------
+  ['CUTIE', 'MERIT', 'MOLLY', 'UNFIT', 'WENCH', 'WHELP'] -- [['FLUTE'], ['LOFTY']]
