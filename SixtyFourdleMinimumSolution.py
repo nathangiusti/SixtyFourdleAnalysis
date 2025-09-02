@@ -1,14 +1,15 @@
 import itertools
-from collections import Counter
 import re
 import time
+from collections import Counter
+from typing import Generator, Set, List, Dict, Tuple
+
+# Constants
+EARLY_TERMINATION_CHECK_INTERVAL = 1000
+WORD_LENGTH = 5
 
 ANSWERS = """
-AWOKE ~ KHAKI ~ UPSET ~ SMILE ~ PRISM ~ FLANK ~ FIXED ~ ELIDE		WRUNG ~ MOLLY ~ BELLE ~ RASPY ~ CUTIE ~ CRANK ~ WHELP ~ LINGO
-ABEAM ~ BOGUS ~ SWUNG ~ PLANK ~ QUIRK ~ SHARP ~ WIDEN ~ BLOAT		WAKED ~ MERIT ~ GREET ~ POSER ~ RAINY ~ WENCH ~ DJINN ~ DINGE
-~	
-BOGEY ~ UNFIT ~ IMPEL ~ KNEAD ~ WOODY ~ CHILL ~ CURRY ~ AGORA		CAIRN ~ PAYER ~ RESIN ~ FLUTE ~ SINCE ~ BEGAT ~ GROAN ~ QUEER
-CELLO ~ GAFFE ~ BEACH ~ DUMPY ~ INANE ~ HAVEN ~ CHEST ~ LOTUS		GEESE ~ DRAPE ~ GRAND ~ LOFTY ~ GORED ~ REHAB ~ CLING ~ LAPSE
+# PASTE ANSWERS HERE
 """
 # EX:
 # ANSWERS = """
@@ -46,10 +47,12 @@ def find_mandatory_words_for_unique_positions(words: list[str]) -> list[str]:
 	return sorted(list(core_combo))
 
 
-def find_solutions_from_core_generator(words: list[str], core_combo: list[str], word_coverage_map):
+def find_solutions_from_core_generator(words: List[str], core_combo: List[str], word_coverage_map: Dict[str, Set]) -> Generator[Tuple[List[str], List[str]], None, None]:
 	"""
 	A generator that finds and yields all minimal solutions given a pre-defined core.
+	Yields tuples of (solution, additional_core_words_from_second_pass).
 	"""
+	additional_core_from_second_pass = []
 	unique_words = sorted(list(set(words)))
 	full_universe = set().union(*word_coverage_map.values())
 
@@ -60,7 +63,7 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 	remaining_universe = full_universe - covered_by_core
 
 	if not remaining_universe:
-		yield sorted(core_combo)
+		yield (sorted(core_combo), additional_core_from_second_pass)
 		return
 
 	# Step 1: Initial filtering of candidate words.
@@ -111,7 +114,8 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 				additional_core.add(word)
 		
 		if additional_core:
-			print(f"Found {len(additional_core)} additional core words after pruning: {sorted(list(additional_core))}")
+			additional_core_from_second_pass = sorted(list(additional_core))
+			print(f"Found {len(additional_core)} additional core words after pruning: {additional_core_from_second_pass}")
 			# Update the core and recalculate remaining universe
 			core_combo = sorted(list(set(core_combo) | additional_core))
 			covered_by_core = set().union(*(word_coverage_map[w] for w in core_combo if w in word_coverage_map))
@@ -121,7 +125,7 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 			candidate_words = [w for w in candidate_words if w not in additional_core]
 			
 			if not remaining_universe:
-				yield sorted(core_combo)
+				yield (sorted(core_combo), additional_core_from_second_pass)
 				return
 
 	min_k_extra = float('inf')
@@ -136,7 +140,7 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 
 		for i, extra_words_tuple in enumerate(itertools.combinations(candidate_words, k_extra)):
 			# Early termination: check if remaining words can cover what's still needed
-			if i % 1000 == 0 and i > 0:  # Check periodically to avoid overhead
+			if i % EARLY_TERMINATION_CHECK_INTERVAL == 0 and i > 0:  # Check periodically to avoid overhead
 				covered_so_far = set().union(*(word_coverage_map[w] for w in extra_words_tuple))
 				still_needed = remaining_universe - covered_so_far
 
@@ -154,7 +158,7 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 			covered_by_extra = set().union(*(word_coverage_map[w] for w in extra_words_tuple))
 			if remaining_universe.issubset(covered_by_extra):
 				min_k_extra = k_extra
-				yield sorted(core_combo + list(extra_words_tuple))
+				yield (sorted(core_combo + list(extra_words_tuple)), additional_core_from_second_pass)
 		
 		elapsed_time = time.time() - start_time
 		print(f" (took {elapsed_time:.2f}s)")
@@ -162,7 +166,7 @@ def find_solutions_from_core_generator(words: list[str], core_combo: list[str], 
 
 # --- Main Execution Workflow ---
 if __name__ == '__main__':
-	word_list_1 = re.findall(r'\b[A-Z]{5}\b', ANSWERS)
+	word_list_1 = re.findall(rf'\b[A-Z]{{{WORD_LENGTH}}}\b', ANSWERS)
 
 	print(f"Starting analysis for a list of {len(word_list_1)} words.")
 	print("-" * 50)
@@ -176,7 +180,9 @@ if __name__ == '__main__':
 	print("-" * 50)
 
 	print(f"Searching for all minimal solutions...")
-	all_solutions = [set(s) for s in find_solutions_from_core_generator(word_list_1, mandatory_core, word_coverage_map)]
+	solution_results = list(find_solutions_from_core_generator(word_list_1, mandatory_core, word_coverage_map))
+	all_solutions = [set(solution) for solution, _ in solution_results]
+	second_pass_core_words = solution_results[0][1] if solution_results else []
 
 	if not all_solutions:
 		print("Could not find any solution to cover all letters.")
@@ -186,11 +192,14 @@ if __name__ == '__main__':
 
 		common_words = set.intersection(*all_solutions)
 		sorted_common_words = sorted(list(common_words))
-		core_words = [word for word in sorted_common_words if word in mandatory_core]
-		additional_common_words = [word for word in sorted_common_words if word not in mandatory_core]
+		
+		# Combine mandatory core with second pass core words
+		all_core_from_analysis = sorted(list(set(mandatory_core) | set(second_pass_core_words)))
+		remaining_common_words = [word for word in sorted_common_words if word not in all_core_from_analysis]
+		
 		print(f"An ideal solution contains the following ({len(sorted_common_words)} words):")
-		print(f"  Core words: {core_words}")
-		print(f"  Additional common words: {additional_common_words}")
+		print(f"  Core words (unique position analysis): {all_core_from_analysis}")
+		print(f"  Additional core words (common to all solutions): {remaining_common_words}")
 		print("-" * 50)
 
 		if len(all_solutions) > 1:
