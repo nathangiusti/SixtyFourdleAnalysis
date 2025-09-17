@@ -9,15 +9,15 @@ EARLY_TERMINATION_CHECK_INTERVAL = 1000
 WORD_LENGTH = 5
 
 ANSWERS = """
-# PASTE ANSWERS HERE
+
 """
 # EX:
 # ANSWERS = """
-# AWOKE ~ KHAKI ~ UPSET ~ SMILE ~ PRISM ~ FLANK ~ FIXED ~ ELIDE		WRUNG ~ MOLLY ~ BELLE ~ RASPY ~ CUTIE ~ CRANK ~ WHELP ~ LINGO
-# ABEAM ~ BOGUS ~ SWUNG ~ PLANK ~ QUIRK ~ SHARP ~ WIDEN ~ BLOAT		WAKED ~ MERIT ~ GREET ~ POSER ~ RAINY ~ WENCH ~ DJINN ~ DINGE
+# SAPPY ~ ADDER ~ AGENT ~ LIVER ~ GLARE ~ THICK ~ LEAKY ~ MACAW		DRIER ~ GOURD ~ AIDER ~ FABLE ~ APHID ~ DRESS ~ MARSH ~ CHOSE
+# SHAKY ~ TRIPE ~ AXIOM ~ SAVOY ~ BONNY ~ WORDY ~ ERECT ~ AMUSE		ANKLE ~ WIMPY ~ PINKY ~ ASSAY ~ POISE ~ BLESS ~ TASTY ~ CRUEL
 # ~
-# BOGEY ~ UNFIT ~ IMPEL ~ KNEAD ~ WOODY ~ CHILL ~ CURRY ~ AGORA		CAIRN ~ PAYER ~ RESIN ~ FLUTE ~ SINCE ~ BEGAT ~ GROAN ~ QUEER
-# CELLO ~ GAFFE ~ BEACH ~ DUMPY ~ INANE ~ HAVEN ~ CHEST ~ LOTUS		GEESE ~ DRAPE ~ GRAND ~ LOFTY ~ GORED ~ REHAB ~ CLING ~ LAPSE
+# INGOT ~ SCUBA ~ CHORE ~ LUCKY ~ MOVED ~ DRIFT ~ SMELT ~ YEAST		PLUCK ~ EVADE ~ POESY ~ ALIAS ~ YUMMY ~ SHANK ~ METER ~ MELON
+# SCONE ~ REPLY ~ INANE ~ RASPY ~ FICUS ~ AEGIS ~ SLAVE ~ DOULA		APNEA ~ GRIME ~ NEIGH ~ CHAMP ~ CRIMP ~ EMPTY ~ ARMED ~ GRAVY
 # """
 
 
@@ -71,62 +71,71 @@ def find_solutions_from_core_generator(words: List[str], core_combo: List[str], 
 	initial_candidates = [w for w in unique_words if
 						  w not in core_combo and not remaining_universe.isdisjoint(word_coverage_map[w])]
 
-	# Step 2: Prune dominated words to reduce the search space.
-	# A word is dominated if its contribution to the remaining universe is a
-	# strict subset of another candidate's contribution. Using such a word is never optimal.
-	candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in initial_candidates}
-
-	dominated_words = set()
-	items = list(candidate_contributions.items())
-	for w1, c1 in items:
-		if w1 in dominated_words:
-			continue
-		for w2, c2 in items:
-			if w1 == w2:
-				continue
-			# If w2's contribution is a proper subset of w1's, w2 is dominated.
-			if c2 < c1:
-				dominated_words.add(w2)
-
-	candidate_words = [w for w in initial_candidates if w not in dominated_words]
-
-	if dominated_words:
-		print(f"Optimization: Pruned {len(dominated_words)} dominated words from the search space.")
-		print("Dominated words will not ever appear in a minimum solution set.")
-		print(f"Dominated words: {sorted(list(dominated_words))}")
-
-	# Step 3: Find additional core words after pruning dominated words
-	# Look for words that are now uniquely covering certain positions
-	remaining_candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in candidate_words}
+	# Step 2: Iteratively prune dominated words and find core words until no new ones are found
+	candidate_words = initial_candidates
+	iteration = 1
 	
-	# Find positions that are only covered by one word among candidates
-	position_coverage_count = Counter()
-	for word, contribution in remaining_candidate_contributions.items():
-		for pos in contribution:
-			position_coverage_count[pos] += 1
-	
-	unique_coverage_positions = {pos for pos, count in position_coverage_count.items() if count == 1}
-	
-	if unique_coverage_positions:
-		additional_core = set()
-		for word, contribution in remaining_candidate_contributions.items():
-			if contribution & unique_coverage_positions:
-				additional_core.add(word)
+	while True:
+		print(f"Iteration {iteration}: Starting with {len(candidate_words)} candidate words")
 		
-		if additional_core:
-			additional_core_from_second_pass = sorted(list(additional_core))
-			print(f"Found {len(additional_core)} additional core words after pruning: {additional_core_from_second_pass}")
+		# Prune dominated words
+		candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in candidate_words}
+
+		dominated_words = set()
+		items = list(candidate_contributions.items())
+		for w1, c1 in items:
+			if w1 in dominated_words:
+				continue
+			for w2, c2 in items:
+				if w1 == w2:
+					continue
+				# If w2's contribution is a proper subset of w1's, w2 is dominated.
+				if c2 < c1:
+					dominated_words.add(w2)
+
+		candidate_words = [w for w in candidate_words if w not in dominated_words]
+
+		if dominated_words:
+			print(f"Iteration {iteration}: Pruned {len(dominated_words)} dominated words: {sorted(list(dominated_words))}")
+
+		# Find additional core words after pruning dominated words
+		remaining_candidate_contributions = {w: word_coverage_map[w] & remaining_universe for w in candidate_words}
+		
+		# Find positions that are only covered by one word among candidates
+		position_coverage_count = Counter()
+		for word, contribution in remaining_candidate_contributions.items():
+			for pos in contribution:
+				position_coverage_count[pos] += 1
+		
+		unique_coverage_positions = {pos for pos, count in position_coverage_count.items() if count == 1}
+		
+		new_core_words = set()
+		if unique_coverage_positions:
+			for word, contribution in remaining_candidate_contributions.items():
+				if contribution & unique_coverage_positions:
+					new_core_words.add(word)
+		
+		if new_core_words:
+			print(f"Iteration {iteration}: Found {len(new_core_words)} additional core words: {sorted(list(new_core_words))}")
+			additional_core_from_second_pass.extend(sorted(list(new_core_words)))
 			# Update the core and recalculate remaining universe
-			core_combo = sorted(list(set(core_combo) | additional_core))
+			core_combo = sorted(list(set(core_combo) | new_core_words))
 			covered_by_core = set().union(*(word_coverage_map[w] for w in core_combo if w in word_coverage_map))
 			remaining_universe = full_universe - covered_by_core
 			
-			# Remove additional core words from candidate list
-			candidate_words = [w for w in candidate_words if w not in additional_core]
+			# Remove new core words from candidate list
+			candidate_words = [w for w in candidate_words if w not in new_core_words]
 			
 			if not remaining_universe:
-				yield (sorted(core_combo), additional_core_from_second_pass)
+				yield (sorted(core_combo), sorted(list(set(additional_core_from_second_pass))))
 				return
+		
+		# If no dominated words were found and no new core words were found, break
+		if not dominated_words and not new_core_words:
+			print(f"Iteration {iteration}: No more dominated words or core words found. Stopping iterative process.")
+			break
+			
+		iteration += 1
 
 	min_k_extra = float('inf')
 	for k_extra in range(1, len(candidate_words) + 1):
